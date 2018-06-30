@@ -9,7 +9,7 @@ MAPBOX_API_KEY = os.getenv('MAPBOX_API_KEY', '')
 #    'CACHE_REDIS_PORT': 6379,
 #    'CACHE_REDIS_DB': 1,
 #    'CACHE_REDIS_URL': 'redis://redis:6379/1'}
-SQLALCHEMY_DATABASE_URI = os.getenc('SUPERSET_SQLALCHEMY_DB_URI','sqlite:////var/lib/superset/superset.db')
+SQLALCHEMY_DATABASE_URI = os.getenv('SUPERSET_SQLALCHEMY_DB_URI','sqlite:////var/lib/superset/superset.db')
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 SECRET_KEY = os.getenv('SUPERSET_SECRET_KEY','thisISaSECRET_1234')
 
