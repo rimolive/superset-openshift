@@ -1,67 +1,67 @@
 [[source]]
-url
-verify_ssl
-name
+url = "*"
+verify_ssl = "*"
+name = "*"
 
 [packages]
-Werkzeug
-bleach
-boto3
-#botocore
-celery
-colorama
-contextlib2
-cryptography
-flask
-flask-appbuilder
-flask-caching
-flask-compress
-flask-cors
-flask-mail
-flask-migrate
-flask-oauth
-flask-script
-flask-testing
-flask-wtf
-flask_oauthlib
-flower
-future
-geopy
-gevent
-gunicorn
-humanize
-idna
-impyla
-markdown
-mysqlclient
-pandas
-parsedatetime
-pathlib2
-polyline
-psycopg2
-pyathena
-pydruid
-pyhive
-pyldap
-python-dateutil
-python-geohash
-pyyaml
-redis
-requests
-simplejson
-six
-sqlalchemy
-sqlalchemy-clickhouse
-sqlalchemy-redshift
-sqlalchemy-utils
-sqlparse
-tableschema
-thrift
-thrift-sasl
-unicodecsv
-unidecode
-superset
+Werkzeug = "*"
+bleach = "*"
+boto3 = "*"
+#botocore = "*"
+celery = "*"
+colorama = "*"
+contextlib2 = "*"
+cryptography = "*"
+flask = "*"
+flask-appbuilder = "*"
+flask-caching = "*"
+flask-compress = "*"
+flask-cors = "*"
+flask-mail = "*"
+flask-migrate = "*"
+flask-oauth = "*"
+flask-script = "*"
+flask-testing = "*"
+flask-wtf = "*"
+flask_oauthlib = "*"
+flower = "*"
+future = "*"
+geopy = "*"
+gevent = "*"
+gunicorn = "*"
+humanize = "*"
+idna = "*"
+impyla = "*"
+markdown = "*"
+mysqlclient = "*"
+pandas = "*"
+parsedatetime = "*"
+pathlib2 = "*"
+polyline = "*"
+psycopg2 = "*"
+pyathena = "*"
+pydruid = "*"
+pyhive = "*"
+pyldap = "*"
+python-dateutil = "*"
+python-geohash = "*"
+pyyaml = "*"
+redis = "*"
+requests = "*"
+simplejson = "*"
+six = "*"
+sqlalchemy = "*"
+sqlalchemy-clickhouse = "*"
+sqlalchemy-redshift = "*"
+sqlalchemy-utils = "*"
+sqlparse = "*"
+tableschema = "*"
+thrift = "*"
+thrift-sasl = "*"
+unicodecsv = "*"
+unidecode = "*"
+superset = "*"
 
 [dev-packages]
-pytest
+pytest = "*"
 
