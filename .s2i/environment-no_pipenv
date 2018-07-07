@@ -1,4 +1,0 @@
-APP_CONFIG=config.py
-APP_MODULE=superset:app
-APP_HOME=/home/default
-UPGRADE_PIP_TO_LATEST=1
