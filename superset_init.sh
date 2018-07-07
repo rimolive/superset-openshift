@@ -1,9 +1,13 @@
-i#!/usr/bin/env bash
-
+#!/usr/bin/env bash
 set -ex
 
+# Make sure we have a config - if not copy the default
+if [ ! -f ${SUPERSET_CONFIG_PATH} ]; then
+	cp -v default_superset_config.py ${SUPERSET_CONFIG_PATH}
+fi
+
 # Create an admin user (you will be prompted to set username, first and last name before setting a password)
-fabmanager create-admin --app superset
+fabmanager create-admin --app superset --username ${SUPERSET_ADM_USR:-admin} --firstname ${SUPERSET_ADM_FIRSTNAME:-admin} --lastname ${SUPERSET_ADM_LASTNAME:-user} --email ${SUPERSET_ADM_EMAIL:-admin@localhost} --password ${SUPERSET_ADM_PWD:-admin}
 
 # Initialize the database
 superset db upgrade
@@ -14,11 +18,5 @@ superset load_examples
 # Create default roles and permissions
 superset init
 
-# Need to run  when enter contains for first time
-cd superset/assets && npm run build && cd ../../
+sleep 10
 
-# Start superset worker for SQL Lab
-superset worker &
-
-# To start a development web server, use the -d switch
-superset runserver -d
