@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-SUPERSET_CONFIG_PATH = ${SUPERSET_CONFIG_PATH:-/etc/superset/superset_config.py}
+SUPERSET_CONFIG_PATH=${SUPERSET_CONFIG_PATH:-/etc/superset/superset_config.py}
 
 # Make sure we have a config - if not copy the default
 if [ ! -f ${SUPERSET_CONFIG_PATH} ]; then
