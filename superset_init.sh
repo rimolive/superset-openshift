@@ -5,9 +5,12 @@ echo SUPERSET_CONFIG_PATH from Env: $SUPERSET_CONFIG_PATH
 
 export SUPERSET_CONFIG_PATH=${SUPERSET_CONFIG_PATH:-/etc/superset/superset_config.py}
 
-# Make sure we have a config - if not copy the default
+# Make sure we have a config - fail if not
 if [ ! -f ${SUPERSET_CONFIG_PATH} ]; then
-	cp -v default_superset_config.py ${SUPERSET_CONFIG_PATH}
+	# NOW USING CONFIG MAP
+	# cp -v default_superset_config.py ${SUPERSET_CONFIG_PATH}
+	echo $SUPERSET_CONFIG_PATH not found!
+	exit -1
 fi
 
 # Create an admin user (you will be prompted to set username, first and last name before setting a password)
