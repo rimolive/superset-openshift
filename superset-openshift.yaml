@@ -116,7 +116,7 @@ objects:
         - envFrom:
           - configMapRef:
               name: superset
-          image: 172.30.1.1:5000/superset/superset@sha256:ef8032834df026c530e790d957e77a953cd30d4c2991cab3121acfaf783038b5
+          image: 172.30.1.1:5000/superset/superset@sha256:672582acf77bd3dab017bd5b06b61d4493698b52e0a59b1866495003cd4aa517
           imagePullPolicy: Always
           name: superset
           ports:
@@ -170,8 +170,9 @@ objects:
   metadata:
     annotations:
       openshift.io/generated-by: OpenShiftWebConsole
+      openshift.io/image.dockerRepositoryCheck: 2018-07-10T15:47:54Z
     creationTimestamp: null
-    generation: 1
+    generation: 2
     labels:
       app: superset
     name: superset
@@ -183,11 +184,11 @@ objects:
       from:
         kind: DockerImage
         name: 172.30.1.1:5000/superset/superset:latest
-      generation: null
+      generation: 2
       importPolicy: {}
       name: latest
       referencePolicy:
-        type: ""
+        type: Source
   status:
     dockerImageRepository: ""
 - apiVersion: v1
@@ -243,3 +244,30 @@ objects:
     type: ClusterIP
   status:
     loadBalancer: {}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      openshift.io/host.generated: "true"
+    creationTimestamp: null
+    labels:
+      app: superset
+    name: superset
+  spec:
+    host: superset-superset.127.0.0.1.nip.io
+    port:
+      targetPort: 8080-tcp
+    to:
+      kind: Service
+      name: superset
+      weight: 100
+    wildcardPolicy: None
+  status:
+    ingress:
+    - conditions:
+      - lastTransitionTime: 2018-07-10T16:26:53Z
+        status: "True"
+        type: Admitted
+      host: superset-superset.127.0.0.1.nip.io
+      routerName: router
+      wildcardPolicy: None
