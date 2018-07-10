@@ -13,20 +13,20 @@ if [ ! -f ${SUPERSET_CONFIG_PATH} ]; then
 	exit -1
 fi
 
-# Create an admin user if it does not exist
+echo Create an admin user if it does not exist
 if [ "`fabmanager list-users --app superset | grep 'username:admin'`" == "" ]; then 
 	fabmanager create-admin --app superset --username ${SUPERSET_ADM_USR:-admin} --firstname ${SUPERSET_ADM_FIRSTNAME:-admin} --lastname ${SUPERSET_ADM_LASTNAME:-user} --email ${SUPERSET_ADM_EMAIL:-admin@localhost} --password ${SUPERSET_ADM_PWD:-admin}
 fi
 
-# Initialize the database
+echo Initialize the database
 superset db upgrade
 
-# Load some data to play with
 if [ "$SUPERSET_LOAD_EXAMPLES" == "1" ]; then
+	echo Load some data to play with
 	superset load_examples
 fi
 
-# Create default roles and permissions
+echo Create default roles and permissions
 superset init
 
 
