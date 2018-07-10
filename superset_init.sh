@@ -13,17 +13,20 @@ if [ ! -f ${SUPERSET_CONFIG_PATH} ]; then
 	exit -1
 fi
 
-# Create an admin user (you will be prompted to set username, first and last name before setting a password)
-fabmanager create-admin --app superset --username ${SUPERSET_ADM_USR:-admin} --firstname ${SUPERSET_ADM_FIRSTNAME:-admin} --lastname ${SUPERSET_ADM_LASTNAME:-user} --email ${SUPERSET_ADM_EMAIL:-admin@localhost} --password ${SUPERSET_ADM_PWD:-admin}
+# Create an admin user if it does not exist
+if [ "`fabmanager list-users --app superset | grep 'username:admin'`" == "" ]; then 
+	fabmanager create-admin --app superset --username ${SUPERSET_ADM_USR:-admin} --firstname ${SUPERSET_ADM_FIRSTNAME:-admin} --lastname ${SUPERSET_ADM_LASTNAME:-user} --email ${SUPERSET_ADM_EMAIL:-admin@localhost} --password ${SUPERSET_ADM_PWD:-admin}
+fi
 
 # Initialize the database
 superset db upgrade
 
 # Load some data to play with
-superset load_examples
+if [ "$SUPERSET_LOAD_EXAMPLES" == "1" ]; then
+	superset load_examples
+fi
 
 # Create default roles and permissions
 superset init
 
-sleep 10
 
