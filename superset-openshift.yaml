@@ -91,17 +91,6 @@ objects:
         intervalSeconds: 1
         maxSurge: 25%
         maxUnavailable: 25%
-        pre:
-          execNewPod:
-            command:
-            - /bin/sh
-            - -c
-            - ./superset_init.sh
-            containerName: superset
-            volumes:
-            - volume-gduxy
-            - volume-lh9i4
-          failurePolicy: ignore
         timeoutSeconds: 600
         updatePeriodSeconds: 1
       type: Rolling
@@ -125,6 +114,19 @@ objects:
           resources: {}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/superset
+            name: volume-gduxy
+          - mountPath: /etc/superset
+            name: volume-lh9i4
+        initContainers:
+        - name: superset-init 
+          envFrom:
+          - configMapRef:
+              name: superset
+          image: 172.30.1.1:5000/superset/superset@sha256:672582acf77bd3dab017bd5b06b61d4493698b52e0a59b1866495003cd4aa517
+          imagePullPolicy: Always
+          command: ['/bin/sh','-c','./superset_init.sh']
           volumeMounts:
           - mountPath: /var/lib/superset
             name: volume-gduxy
