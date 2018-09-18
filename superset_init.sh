@@ -13,6 +13,8 @@ if [ ! -f ${SUPERSET_CONFIG_PATH} ]; then
 	exit -1
 fi
 
+echo S{SUPERSET_SQLALCHEMY_DB_URI}
+
 echo Create an admin user if it does not exist
 if [ "`fabmanager list-users --app superset | grep 'username:admin'`" == "" ]; then 
 	fabmanager create-admin --app superset --username ${SUPERSET_ADM_USR:-admin} --firstname ${SUPERSET_ADM_FIRSTNAME:-admin} --lastname ${SUPERSET_ADM_LASTNAME:-user} --email ${SUPERSET_ADM_EMAIL:-admin@localhost} --password ${SUPERSET_ADM_PWD:-admin}

@@ -50,8 +50,8 @@ objects:
 - apiVersion: v1
   data:
     SUPERSET_ADM_PWD: ${SUPERSET_ADMIN_PASSWORD}
-    SUPERSET_CONFIG_PATH: /var/lib/superset/superset_config.py
-    SUPERSET_SQLALCHEMY_DB_URI: postgresql+psycopg2://${database-user}:${database-password}@postgresql://superset-postgresql:5432/${database-name}
+    SUPERSET_CONFIG_PATH: /etc/superset/superset_config.py
+    SUPERSET_SQLALCHEMY_DB_URI: postgresql+psycopg2://"${DATABASE_USER}":"${DATABASE_PASSWORD}"@postgresql://{.spec.clusterIP}:{.spec.ports[?(.name=="postgresql")].port}/"${DATABASE_NAME}"
     superset_config.py: |
       import os
 
@@ -65,15 +65,15 @@ objects:
       #    'CACHE_REDIS_DB': 1,
       #    'CACHE_REDIS_URL': 'redis://redis:6379/1'}
       SQLALCHEMY_DATABASE_URI = os.getenv('SUPERSET_SQLALCHEMY_DB_URI','sqlite:////var/lib/superset/superset.db')
+      print(SQLALCHEMY_DATABASE_URI)
       SQLALCHEMY_TRACK_MODIFICATIONS = True
-      SECRET_KEY = os.getenv('SUPERSET_SECRET_KEY',${superset-secret-key})
+      SECRET_KEY = os.getenv('SUPERSET_SECRET_KEY','thisISaSECRET_1234')
       DATA_DIR = '/var/lib/superset'
+      
   kind: ConfigMap
   metadata:
     creationTimestamp: null
-    name: superset
-
-    -----------
+    name: "${SUPERSET_SERVICE_NAME}"
 - apiVersion: v1
   kind: BuildConfig
   metadata:
@@ -125,7 +125,7 @@ objects:
     generation: 1
     labels:
       app: superset
-    name: superset
+    name: "${SUPERSET_SERVICE_NAME}"
   spec:
     replicas: 1
     selector:
@@ -164,21 +164,20 @@ objects:
           terminationMessagePolicy: File
           volumeMounts:
           - mountPath: /var/lib/superset
-            name: volume-gduxy
-          - mountPath: /etc/superset
-            name: volume-lh9i4
+            name: superset-data
         dnsPolicy: ClusterFirst
         initContainers:
         - command:
           - /bin/sh
           - -cx
-          - ./superset_init.sh
+          - ./superset_init.sh > /var/lib/superset/superset-init.log 2>&1
           envFrom:
           - configMapRef:
               name: superset
           - secretRef:
               name: superset-postgresql
-          image: superset
+          image: >-
+            {.spec.clusterIP}:5000/superset/superset:latest
           imagePullPolicy: Always
           name: superset-init
           resources: {}
@@ -186,15 +185,15 @@ objects:
           terminationMessagePolicy: File
           volumeMounts:
           - mountPath: /var/lib/superset
-            name: volume-gduxy
+            name: superset-data
           - mountPath: /etc/superset
-            name: volume-lh9i4
+            name: superset-config
         restartPolicy: Always
         schedulerName: default-scheduler
         securityContext: {}
         terminationGracePeriodSeconds: 30
         volumes:
-        - name: volume-gduxy
+        - name: superset-data
           persistentVolumeClaim:
             claimName: superset-data
         - configMap:
@@ -203,7 +202,7 @@ objects:
             - key: superset_config.py
               path: superset_config.py
             name: superset
-          name: volume-lh9i4
+          name: superset-config
     test: false
     triggers:
     - imageChangeParams:
@@ -213,16 +212,9 @@ objects:
         from:
           kind: ImageStreamTag
           name: superset:latest
-          namespace: superset
       type: ImageChange
     - type: ConfigChange
-  status:
-    availableReplicas: 0
-    latestVersion: 0
-    observedGeneration: 0
-    replicas: 0
-    unavailableReplicas: 0
-    updatedReplicas: 0
+  status: {}
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -330,55 +322,15 @@ objects:
           namespace: openshift
       type: ImageChange
     - type: ConfigChange
-  status:
-    availableReplicas: 0
-    latestVersion: 0
-    observedGeneration: 0
-    replicas: 0
-    unavailableReplicas: 0
-    updatedReplicas: 0
+  status: {}
 - apiVersion: v1
   kind: ImageStream
   metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftWebConsole
-      openshift.io/image.dockerRepositoryCheck: 2018-07-10T19:03:51Z
-    creationTimestamp: null
-    generation: 2
     labels:
       app: superset
-    name: "${SUPERSET_SERVICE_NAME}"
-  spec:
-    lookupPolicy:
-      local: false
-    tags:
-    - annotations: null
-      from:
-        kind: DockerImage
-        name: 172.30.1.1:5000/superset/superset:latest
-      generation: 2
-      importPolicy: {}
-      name: latest
-      referencePolicy:
-        type: Source
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
-  kind: PersistentVolumeClaim
-  metadata:
-    annotations:
-      pv.kubernetes.io/bind-completed: "yes"
-      pv.kubernetes.io/bound-by-controller: "yes"
-    creationTimestamp: null
-    name: superset-config
-  spec:
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: 1Gi
-    volumeName: pv0096
-  status: {}
+      build: ${SUPERSET_SERVICE_NAME}
+    name: superset
+  spec: {}
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
@@ -419,10 +371,12 @@ objects:
   metadata:
     annotations:
       openshift.io/generated-by: OpenShiftWebConsole
+      template.openshift.io/expose-uri: http://{.spec.clusterIP}:{.spec.ports[?(.name=="superset")].port}
     creationTimestamp: null
     labels:
       app: superset
-    name: superset
+      service: "${SUPERSET_SERVICE_NAME}" 
+    name: "${SUPERSET_SERVICE_NAME}"
   spec:
     ports:
     - name: 8080-tcp
@@ -431,6 +385,7 @@ objects:
       targetPort: 8080
     selector:
       deploymentconfig: superset
+      name: "${SUPERSET_SERVICE_NAME}"
     sessionAffinity: None
     type: ClusterIP
   status:
@@ -444,7 +399,7 @@ objects:
     labels:
       app: postgresql-persistent
       template: postgresql-persistent-template
-    name: superset-postgresql
+    name: "${DATABASE_SERVICE_NAME}"
   spec:
     ports:
     - name: postgresql
@@ -452,7 +407,7 @@ objects:
       protocol: TCP
       targetPort: 5432
     selector:
-      name: superset-postgresql
+      name: "${DATABASE_SERVICE_NAME}"
     sessionAffinity: None
     type: ClusterIP
   status:
@@ -467,7 +422,7 @@ objects:
       app: superset
     name: superset
   spec:
-    host: superset-superset.127.0.0.1.nip.io
+    host: ${FQDN}
     port:
       targetPort: 8080-tcp
     to:
@@ -481,13 +436,10 @@ objects:
       - lastTransitionTime: 2018-07-10T19:03:51Z
         status: "True"
         type: Admitted
-      host: superset-superset.127.0.0.1.nip.io
+      host: ${FQDN}
       routerName: router
       wildcardPolicy: None
-
-
- -----
- parameters:
+parameters:
 - description: The Fully Qualified Hostname (FQDN) of the application
   displayName: FQDN
   name: FQDN
@@ -533,7 +485,7 @@ objects:
   displayName: Database Name
   name: DATABASE_NAME
   required: true
-  value: wekan
+  value: superset
 - description: Password for the database admin user.
   displayName: Database Admin Password
   from: "[a-zA-Z0-9]{16}"
@@ -550,11 +502,6 @@ objects:
   name: VOLUME_CAPACITY_SUPERSET
   required: true
   value: 512Mi
-- description: Version of MongoDB image to be used (2.4, 2.6, 3.2 or latest).
-  displayName: Version of MongoDB Image
-  name: MONGODB_VERSION
-  required: true
-  value: '3.2'
 - name: SUPERSET_SERVICE_NAME
   displayName: Superset Service Name
   value: superset
