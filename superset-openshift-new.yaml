@@ -89,6 +89,7 @@ objects:
       to:
         kind: ImageStreamTag
         name: superset:latest
+        namespace: "${NAMESPACE}"
     postCommit: {}
     resources: {}
     runPolicy: Serial
@@ -177,7 +178,7 @@ objects:
           - secretRef:
               name: superset-postgresql
           image: >-
-            {.spec.clusterIP}:5000/superset/superset:latest
+            {.spec.clusterIP}:5000/${NAMESPACE}/superset:latest
           imagePullPolicy: Always
           name: superset-init
           resources: {}
@@ -212,6 +213,7 @@ objects:
         from:
           kind: ImageStreamTag
           name: superset:latest
+          namespace: "${NAMESPACE}"
       type: ImageChange
     - type: ConfigChange
   status: {}
@@ -259,7 +261,7 @@ objects:
               secretKeyRef:
                 key: database-name
                 name: "${DATABASE_SERVICE_NAME}"
-          image: docker.io/centos/postgresql-96-centos7@sha256:4bca0d7a1e613cb30229056b7c69880d972663070512c3bb31b2de4e4562299d
+          image: docker.io/centos/postgresql-96-centos7:latest
           imagePullPolicy: IfNotPresent
           livenessProbe:
             exec:
@@ -453,7 +455,7 @@ parameters:
 - description: The OpenShift Namespace where the ImageStream resides.
   displayName: Namespace
   name: NAMESPACE
-  value: openshift
+  value: superset
 - description: The passord for the Superset admin user
   displayName: Superset Admin Password
   name: SUPERSET_ADMIN_PASSWORD
