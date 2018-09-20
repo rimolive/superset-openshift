@@ -51,7 +51,7 @@ objects:
   data:
     SUPERSET_ADM_PWD: ${SUPERSET_ADMIN_PASSWORD}
     SUPERSET_CONFIG_PATH: /etc/superset/superset_config.py
-    SUPERSET_SQLALCHEMY_DB_URI: postgresql+psycopg2://"${DATABASE_USER}":"${DATABASE_PASSWORD}"@postgresql://{.spec.clusterIP}:{.spec.ports[?(.name=="postgresql")].port}/"${DATABASE_NAME}"
+    SUPERSET_SQLALCHEMY_DB_URI: postgresql+psycopg2://"${DATABASE_USER}":"${DATABASE_PASSWORD}"@postgresql://superset-postgresql.superset.svc:postgresql/"${DATABASE_NAME}"
     superset_config.py: |
       import os
 
@@ -170,7 +170,7 @@ objects:
         initContainers:
         - command:
           - /bin/sh
-          - -cx
+          - -c
           - ./superset_init.sh > /var/lib/superset/superset-init.log 2>&1
           envFrom:
           - configMapRef:
@@ -178,7 +178,7 @@ objects:
           - secretRef:
               name: superset-postgresql
           image: >-
-            {.spec.clusterIP}:5000/${NAMESPACE}/superset:latest
+            docker-registry.default.svc:5000/${NAMESPACE}/superset:latest
           imagePullPolicy: Always
           name: superset-init
           resources: {}
@@ -340,14 +340,13 @@ objects:
       pv.kubernetes.io/bind-completed: "yes"
       pv.kubernetes.io/bound-by-controller: "yes"
     creationTimestamp: null
-    name: superset-data
+    name: ${SUPERSET_SERVICE_NAME}-data
   spec:
     accessModes:
     - ReadWriteOnce
     resources:
       requests:
-        storage: 10Gi
-    volumeName: pv0089
+        storage: 5Gi
   status: {}
 - apiVersion: v1
   kind: PersistentVolumeClaim
@@ -359,14 +358,13 @@ objects:
     labels:
       app: postgresql-persistent
       template: postgresql-persistent-template
-    name: superset-postgresql
+    name: "${DATABASE_SERVICE_NAME}"
   spec:
     accessModes:
     - ReadWriteOnce
     resources:
       requests:
-        storage: 1Gi
-    volumeName: pv0088
+        storage: 5Gi
   status: {}
 - apiVersion: v1
   kind: Service
