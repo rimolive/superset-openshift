@@ -335,39 +335,6 @@ objects:
     name: superset
   spec: {}
 - apiVersion: v1
-  kind: PersistentVolumeClaim
-  metadata:
-    annotations:
-      pv.kubernetes.io/bind-completed: "yes"
-      pv.kubernetes.io/bound-by-controller: "yes"
-    creationTimestamp: null
-    name: ${SUPERSET_SERVICE_NAME}-data
-  spec:
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: 5Gi
-  status: {}
-- apiVersion: v1
-  kind: PersistentVolumeClaim
-  metadata:
-    annotations:
-      pv.kubernetes.io/bind-completed: "yes"
-      pv.kubernetes.io/bound-by-controller: "yes"
-    creationTimestamptionTimestamp: null
-    labels:
-      app: postgresql-persistent
-      template: postgresql-persistent-template
-    name: "${DATABASE_SERVICE_NAME}-data"
-  spec:
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: 5Gi
-  status: {}
-- apiVersion: v1
   kind: Service
   metadata:
     annotations:
