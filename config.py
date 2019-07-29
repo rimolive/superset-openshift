@@ -6,5 +6,5 @@ threads = int(os.environ.get('GUNICORN_THREADS', '1'))
 forwarded_allow_ips = '*'
 secure_scheme_headers = { 'X-Forwarded-Proto': 'https' }
 
-log-level='debug'
-capture-output=True
+log_level='debug'
+capture_output=True
