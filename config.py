@@ -6,5 +6,7 @@ threads = int(os.environ.get('GUNICORN_THREADS', '1'))
 forwarded_allow_ips = '*'
 secure_scheme_headers = { 'X-Forwarded-Proto': 'https' }
 
-log_level='debug'
+loglevel='debug'
 capture_output=True
+
+errorlog='/var/lib/superset/superset.err'
