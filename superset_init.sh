@@ -5,8 +5,6 @@ echo SUPERSET_CONFIG_PATH from Env: $SUPERSET_CONFIG_PATH
 
 export SUPERSET_CONFIG_PATH=${SUPERSET_CONFIG_PATH:-/etc/superset/superset_config.py}
 
-export FLASK_APP=superset
-
 # Make sure we have a config - fail if not
 if [ ! -f ${SUPERSET_CONFIG_PATH} ]; then
 	# NOW USING CONFIG MAP
@@ -19,8 +17,12 @@ echo Initialize the database
 superset db upgrade
 
 echo Create an admin user if it does not exist
-if [ "`flask fab list-users --app superset | grep 'username:admin'`" == "" ]; then 
-	flask fab create-admin --username ${SUPERSET_ADM_USR:-admin} --firstname ${SUPERSET_ADM_FIRSTNAME:-admin} --lastname ${SUPERSET_ADM_LASTNAME:-user} --email ${SUPERSET_ADM_EMAIL:-admin@localhost} --password ${SUPERSET_ADM_PWD:-admin}
+if [ "`flask fab list-users | grep 'username:admin'`" == "" ]; then 
+	flask fab create-admin --username ${SUPERSET_ADM_USR:-admin} \
+		--firstname ${SUPERSET_ADM_FIRSTNAME:-admin} \
+		--lastname ${SUPERSET_ADM_LASTNAME:-user} \
+		--email ${SUPERSET_ADM_EMAIL:-admin@localhost} \
+		--password ${SUPERSET_ADM_PWD:-admin}
 fi
 
 if [ "$SUPERSET_LOAD_EXAMPLES" == "1" ]; then
