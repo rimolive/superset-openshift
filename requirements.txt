@@ -62,6 +62,7 @@ parsedatetime==2.4
 pathlib2==2.3.4
 polyline==1.4.0
 prison==0.1.2
+psycopg2==2.8.3
 pycparser==2.19
 pydruid==0.5.6
 pyhive==0.6.1
