@@ -1,54 +1,77 @@
-- apiVersion: v1
-  kind: PersistentVolumeClaim
-  metadata:
-    annotations:
-      pv.kubernetes.io/bind-completed: "yes"
-      pv.kubernetes.io/bound-by-controller: "yes"
-    creationTimestamp: null
-    name: ${SUPERSET_SERVICE_NAME}-data
-  spec:
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: ${SUPERSET_VOLUME_SIZE}
-    volumeName: ${SUPERSET_VOLUME}
-  status: {}
-- apiVersion: v1
-  kind: PersistentVolumeClaim
-  metadata:
-    annotations:
-      pv.kubernetes.io/bind-completed: "yes"
-      pv.kubernetes.io/bound-by-controller: "yes"
-    creationTimestamptionTimestamp: null
-    labels:
-      app: postgresql-persistent
-      template: postgresql-persistent-template
-    name: "${DATABASE_SERVICE_NAME}-data"
-  spec:
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: ${POSTGRESQL_VOLUME_SIZE}
-    volumeName: ${POSTGRESQL_VOLUME}
-  status: {}
+apiVersion: v1
+kind: Template
+labels:
+  teamplate: superset-pvcs-template
+message: |-
+  Persistent volume claims for superset.
+metadata:
+  annotations:
+    description: |-
+      Persistent Volume Claims for Superset.
+  name: superset-pvcs
+objects:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      annotations:
+        pv.kubernetes.io/bind-completed: "yes"
+        pv.kubernetes.io/bound-by-controller: "yes"
+      creationTimestamp: null
+      name: ${SUPERSET_SERVICE_NAME}-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: ${SUPERSET_VOLUME_SIZE}
+      volumeName: ${SUPERSET_VOLUME}
+    status: {}
+
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      annotations:
+        pv.kubernetes.io/bind-completed: "yes"
+        pv.kubernetes.io/bound-by-controller: "yes"
+      creationTimestamptionTimestamp: null
+      labels:
+        app: postgresql-persistent
+        template: postgresql-persistent-template
+      name: ${DATABASE_SERVICE_NAME}-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: ${POSTGRESQL_VOLUME_SIZE}
+      volumeName: ${POSTGRESQL_VOLUME}
+    status: {}
+
 parameters:
-- description: Persisten Volume Name for PostgreSQL claim
-  displayName: PostgreSQL Volume Name
-  name: POSTGRESQL_VOLUME
-  required: true
-- description: Size of PostgreSQL data volume claim.
-  displayName: PostgreSQL data volume size
-  name: POSTGRESQL_VOLUME_SIZE
-  required: true
-  value: 5Gi
-- description: Persisten Volume Name for Superset claim
-  displayName: Superset Volume Name
-  name: SUPERSET_VOLUME
-  required: true
-- description: Size of Superset data volume claim.
-  displayName: Superset data volume size
-  name: SUPERSET_VOLUME_SIZE
-  required: true
-  value: 512Mi
+  - description: Persisten Volume Name for PostgreSQL claim
+    displayName: PostgreSQL Volume Name
+    name: POSTGRESQL_VOLUME
+    required: true
+  - description: Size of PostgreSQL data volume claim.
+    displayName: PostgreSQL data volume size
+    name: POSTGRESQL_VOLUME_SIZE
+    required: true
+    value: 5Gi
+  - description: Persisten Volume Name for Superset claim
+    displayName: Superset Volume Name
+    name: SUPERSET_VOLUME
+    required: true
+  - description: Size of Superset data volume claim.
+    displayName: Superset data volume size
+    name: SUPERSET_VOLUME_SIZE
+    required: true
+    value: 512Mi
+  - description: The name of the OpenShift Service exposed for the database.
+    displayName: Database Service Name
+    name: DATABASE_SERVICE_NAME
+    required: true
+    value: superset-postgresql
+  - name: SUPERSET_SERVICE_NAME
+    displayName: Superset Service Name
+    value: superset
+    required: true

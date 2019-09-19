@@ -20,476 +20,478 @@ metadata:
     tags: superset,data,postgresql
   name: superset-postgres-persistent
 objects:
-- apiVersion: v1
-  kind: ServiceAccount
-  metadata:
-    name: ${SUPERSET_SERVICE_NAME}
-    labels:
-      app: superset
-      service: ${SUPERSET_SERVICE_NAME}
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    annotations:
-      template.openshift.io/expose-admin_password: '{.data[''database-admin-passowrd'']}'
-      template.openshift.io/expose-database_name: '{.data[''database-name'']}'
-      template.openshift.io/expose-password: '{.data[''database-password'']}'
-      template.openshift.io/expose-username: '{.data[''database-user'']}'
-    creationTimestamp: null
-    labels:
-      app: postgresql-persistent
-      template: postgresql-persistent-template
-    name: "${DATABASE_SERVICE_NAME}"
-  stringData:
-    database-admin-password: "${DATABASE_ADMIN_PASSWORD}"
-    database-name: "${DATABASE_NAME}"
-    database-password: "${DATABASE_PASSWORD}"
-    database-user: "${DATABASE_USER}"
-    superset-secret-key: "${SUPERSET_SECRET_KEY}"
-  type: Opaque
-- apiVersion: v1
-  data:
-    SUPERSET_ADM_PWD: ${SUPERSET_ADMIN_PASSWORD}
-    SUPERSET_CONFIG_PATH: /etc/superset/superset_config.py
-    SUPERSET_SQLALCHEMY_DB_URI: postgresql+psycopg2://${DATABASE_USER}:${DATABASE_PASSWORD}@superset-postgresql.superset.svc:5432/${DATABASE_NAME}
-    superset_config.py: |
-      import os
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: ${SUPERSET_SERVICE_NAME}
+      labels:
+        app: superset
+        service: ${SUPERSET_SERVICE_NAME}
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      annotations:
+        template.openshift.io/expose-admin_password: '{.data[''database-admin-passowrd'']}'
+        template.openshift.io/expose-database_name: '{.data[''database-name'']}'
+        template.openshift.io/expose-password: '{.data[''database-password'']}'
+        template.openshift.io/expose-username: '{.data[''database-user'']}'
+      creationTimestamp: null
+      labels:
+        app: postgresql-persistent
+        template: postgresql-persistent-template
+      name: "${DATABASE_SERVICE_NAME}"
+    stringData:
+      database-admin-password: "${DATABASE_ADMIN_PASSWORD}"
+      database-name: "${DATABASE_NAME}"
+      database-password: "${DATABASE_PASSWORD}"
+      database-user: "${DATABASE_USER}"
+      superset-secret-key: "${SUPERSET_SECRET_KEY}"
+    type: Opaque
+  - apiVersion: v1
+    data:
+      FLASK_APP: ${SUPERSET_SERVICE_NAME}
+      SUPERSET_ADM_PWD: ${SUPERSET_ADMIN_PASSWORD}
+      SUPERSET_CONFIG_PATH: /etc/superset/superset_config.py
+      SUPERSET_SQLALCHEMY_DB_URI: postgresql+psycopg2://${DATABASE_USER}:${DATABASE_PASSWORD}@superset-postgresql.superset.svc:5432/${DATABASE_NAME}
+      superset_config.py: |
+        import os
 
-      MAPBOX_API_KEY = os.getenv('MAPBOX_API_KEY', '')
-      #CACHE_CONFIG = {
-      #    'CACHE_TYPE': 'redis',
-      #    'CACHE_DEFAULT_TIMEOUT': 300,
-      #    'CACHE_KEY_PREFIX': 'superset_',
-      #    'CACHE_REDIS_HOST': 'redis',
-      #    'CACHE_REDIS_PORT': 6379,
-      #    'CACHE_REDIS_DB': 1,
-      #    'CACHE_REDIS_URL': 'redis://redis:6379/1'}
-      SQLALCHEMY_DATABASE_URI = os.getenv('SUPERSET_SQLALCHEMY_DB_URI','sqlite:////var/lib/superset/superset.db')
-      SQLALCHEMY_TRACK_MODIFICATIONS = True
-      SECRET_KEY = os.getenv('SUPERSET_SECRET_KEY','thisISaSECRET_1234')
-      DATA_DIR = '/var/lib/superset'
-      
-  kind: ConfigMap
-  metadata:
-    creationTimestamp: null
-    name: "${SUPERSET_SERVICE_NAME}"
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftWebConsole
-    creationTimestamp: null
-    labels:
-      app: superset
-    name: ${SUPERSET_SERVICE_NAME}
-  spec:
-    nodeSelector: null
-    output:
-      to:
-        kind: ImageStreamTag
-        name: superset:latest
-        namespace: "${NAMESPACE}"
-    postCommit: {}
-    resources: {}
-    runPolicy: Serial
-    source:
-      git:
-        ref: "${GIT_REF}"
-        uri: "${GIT_URI}"
-      type: Git
-    strategy:
-      sourceStrategy:
-        from:
-          kind: ImageStreamTag
-          name: python:3.6
-          namespace: openshift
-      type: Source
-    triggers:
-    - imageChange: {}
-      type: ImageChange
-    - type: ConfigChange
-    - generic:
-        secret: "${GENERIC_TRIGGER_SECRET}"
-      type: Generic
-    - github:
-        secret: "${GITHUB_TRIGGER_SECRET}"
-      type: GitHub
-  status:
-    lastVersion: 0
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftWebConsole
-    creationTimestamp: null
-    generation: 1
-    labels:
-      app: superset
-    name: "${SUPERSET_SERVICE_NAME}"
-  spec:
-    replicas: 1
-    selector:
-      deploymentconfig: superset
-    strategy:
-      activeDeadlineSeconds: 21600
-      resources: {}
-      rollingParams:
-        intervalSeconds: 1
-        maxSurge: 25%
-        maxUnavailable: 25%
-        timeoutSeconds: 600
-        updatePeriodSeconds: 1
-      type: Rolling
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          app: superset
-          deploymentconfig: superset
-      spec:
-        containers:
-        - envFrom:
-          - configMapRef:
-              name: superset
-          - secretRef:
-              name: superset-postgresql
-          image: superset
-          imagePullPolicy: Always
-          name: superset
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-          - mountPath: /var/lib/superset
-            name: superset-data
-          - mountPath: /etc/superset
-            name: superset-config
-        dnsPolicy: ClusterFirst
-        initContainers:
-        - command:
-          - /bin/sh
-          - -c
-          - ./superset_init.sh && sleep 30
-          envFrom:
-          - configMapRef:
-              name: superset
-          - secretRef:
-              name: superset-postgresql
-          image: >-
-            docker-registry.default.svc:5000/${NAMESPACE}/superset:latest
-          imagePullPolicy: Always
-          name: superset-init
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-          - mountPath: /var/lib/superset
-            name: superset-data
-          - mountPath: /etc/superset
-            name: superset-config
-        restartPolicy: Always
-        schedulerName: default-scheduler
-        securityContext: {}
-        terminationGracePeriodSeconds: 30
-        volumes:
-        - name: superset-data
-          persistentVolumeClaim:
-            claimName: superset-data
-        - configMap:
-            defaultMode: 420
-            items:
-            - key: superset_config.py
-              path: superset_config.py
-            name: superset
-          name: superset-config
-    test: false
-    triggers:
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - superset
-        from:
+        MAPBOX_API_KEY = os.getenv('MAPBOX_API_KEY', '')
+        #CACHE_CONFIG = {
+        #    'CACHE_TYPE': 'redis',
+        #    'CACHE_DEFAULT_TIMEOUT': 300,
+        #    'CACHE_KEY_PREFIX': 'superset_',
+        #    'CACHE_REDIS_HOST': 'redis',
+        #    'CACHE_REDIS_PORT': 6379,
+        #    'CACHE_REDIS_DB': 1,
+        #    'CACHE_REDIS_URL': 'redis://redis:6379/1'}
+        SQLALCHEMY_DATABASE_URI = os.getenv('SUPERSET_SQLALCHEMY_DB_URI','sqlite:////var/lib/superset/superset.db')
+        SQLALCHEMY_TRACK_MODIFICATIONS = True
+        SECRET_KEY = os.getenv('SUPERSET_SECRET_KEY','thisISaSECRET_1234')
+        DATA_DIR = '/var/lib/superset'
+
+    kind: ConfigMap
+    metadata:
+      creationTimestamp: null
+      name: "${SUPERSET_SERVICE_NAME}"
+  - apiVersion: v1
+    kind: BuildConfig
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+      creationTimestamp: null
+      labels:
+        app: superset
+      name: ${SUPERSET_SERVICE_NAME}
+    spec:
+      nodeSelector: null
+      output:
+        to:
           kind: ImageStreamTag
           name: superset:latest
           namespace: "${NAMESPACE}"
-      type: ImageChange
-    - type: ConfigChange
-  status: {}
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    annotations:
-      template.alpha.openshift.io/wait-for-ready: "true"
-    creationTimestamp: null
-    generation: 1
-    labels:
-      app: postgresql-persistent
-      template: postgresql-persistent-template
-    name: "${DATABASE_SERVICE_NAME}"
-  spec:
-    replicas: 1
-    selector:
-      name: "${DATABASE_SERVICE_NAME}"
-    strategy:
-      activeDeadlineSeconds: 21600
-      recreateParams:
-        timeoutSeconds: 600
+      postCommit: {}
       resources: {}
-      type: Recreate
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          name: "${DATABASE_SERVICE_NAME}"
-      spec:
-        containers:
-        - env:
-          - name: POSTGRESQL_USER
-            valueFrom:
-              secretKeyRef:
-                key: database-user
-                name: "${DATABASE_SERVICE_NAME}"
-          - name: POSTGRESQL_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                key: database-password
-                name: "${DATABASE_SERVICE_NAME}"
-          - name: POSTGRESQL_DATABASE
-            valueFrom:
-              secretKeyRef:
-                key: database-name
-                name: "${DATABASE_SERVICE_NAME}"
-          image: docker.io/centos/postgresql-96-centos7:latest
-          imagePullPolicy: IfNotPresent
-          livenessProbe:
-            exec:
+      runPolicy: Serial
+      source:
+        git:
+          ref: "${GIT_REF}"
+          uri: "${GIT_URI}"
+        type: Git
+      strategy:
+        sourceStrategy:
+          from:
+            kind: ImageStreamTag
+            name: python:3.6
+            namespace: openshift
+        type: Source
+      triggers:
+        - imageChange: {}
+          type: ImageChange
+        - type: ConfigChange
+        - generic:
+            secret: "${GENERIC_TRIGGER_SECRET}"
+          type: Generic
+        - github:
+            secret: "${GITHUB_TRIGGER_SECRET}"
+          type: GitHub
+    status:
+      lastVersion: 0
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+      creationTimestamp: null
+      generation: 1
+      labels:
+        app: superset
+      name: "${SUPERSET_SERVICE_NAME}"
+    spec:
+      replicas: 1
+      selector:
+        deploymentconfig: superset
+      strategy:
+        activeDeadlineSeconds: 21600
+        resources: {}
+        rollingParams:
+          intervalSeconds: 1
+          maxSurge: 25%
+          maxUnavailable: 25%
+          timeoutSeconds: 600
+          updatePeriodSeconds: 1
+        type: Rolling
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            app: superset
+            deploymentconfig: superset
+        spec:
+          containers:
+            - envFrom:
+                - configMapRef:
+                    name: superset
+                - secretRef:
+                    name: superset-postgresql
+              image: superset
+              imagePullPolicy: Always
+              name: superset
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /var/lib/superset
+                  name: superset-data
+                - mountPath: /etc/superset
+                  name: superset-config
+          dnsPolicy: ClusterFirst
+          initContainers:
+            - name: superset-init
               command:
-              - /bin/sh
-              - -i
-              - -c
-              - pg_isready -h 127.0.0.1 -p 5432
-            failureThreshold: 3
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 1
-          name: postgresql
-          ports:
-          - containerPort: 5432
-            protocol: TCP
-          readinessProbe:
-            exec:
-              command:
-              - /bin/sh
-              - -i
-              - -c
-              - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c
-                'SELECT 1'
-            failureThreshold: 3
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 1
-          resources:
-            limits:
-              memory: "${MEMORY_LIMIT}"
-          securityContext:
-            capabilities: {}
-            privileged: false
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-          - mountPath: /var/lib/pgsql/data
-            name: "${DATABASE_SERVICE_NAME}-data"
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-        schedulerName: default-scheduler
-        securityContext: {}
-        terminationGracePeriodSeconds: 30
-        volumes:
-        - name: "${DATABASE_SERVICE_NAME}-data"
-          persistentVolumeClaim:
-            claimName: "${DATABASE_SERVICE_NAME}-data"
-    test: false
-    triggers:
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - postgresql
-        from:
-          kind: ImageStreamTag
-          name: postgresql:9.6
-          namespace: openshift
-      type: ImageChange
-    - type: ConfigChange
-  status: {}
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    labels:
-      app: superset
-      build: ${SUPERSET_SERVICE_NAME}
-    name: superset
-  spec: {}
-- apiVersion: v1
-  kind: Service
-  metadata:
-    annotations:
-      template.openshift.io/expose-uri: http://{.spec.clusterIP}:{.spec.ports[?(.name=="superset")].port}
-    creationTimestamp: null
-    labels:
-      app: superset
-      template: superset-postgres-persistent 
-    name: "${SUPERSET_SERVICE_NAME}"
-  spec:
-    ports:
-    - name: 8080-tcp
-      port: 8080
-      protocol: TCP
-      targetPort: 8080
-    selector:
-      deploymentconfig: "${SUPERSET_SERVICE_NAME}"
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
-- apiVersion: v1
-  kind: Service
-  metadata:
-    annotations:
-      template.openshift.io/expose-uri: postgres://{.spec.clusterIP}:{.spec.ports[?(.name=="postgresql")].port}
-    creationTimestamp: null
-    labels:
-      app: postgresql-persistent
-      template: postgresql-persistent-template
-    name: "${DATABASE_SERVICE_NAME}"
-  spec:
-    ports:
-    - name: postgresql
-      port: 5432
-      protocol: TCP
-      targetPort: 5432
-    selector:
+                - /bin/sh
+                - -c
+                - ./superset_init.sh && sleep 30
+              envFrom:
+                - configMapRef:
+                    name: superset
+                - secretRef:
+                    name: superset-postgresql
+              image: >-
+                docker-registry.default.svc:5000/${NAMESPACE}/superset:latest
+              imagePullPolicy: Always
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /var/lib/superset
+                  name: superset-data
+                - mountPath: /etc/superset
+                  name: superset-config
+
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - name: superset-data
+              persistentVolumeClaim:
+                claimName: superset-data
+            - configMap:
+                defaultMode: 420
+                items:
+                  - key: superset_config.py
+                    path: superset_config.py
+                name: superset
+              name: superset-config
+      test: false
+      triggers:
+        - imageChangeParams:
+            automatic: true
+            containerNames:
+              - superset
+            from:
+              kind: ImageStreamTag
+              name: superset:latest
+              namespace: "${NAMESPACE}"
+          type: ImageChange
+        - type: ConfigChange
+    status: {}
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      annotations:
+        template.alpha.openshift.io/wait-for-ready: "true"
+      creationTimestamp: null
+      generation: 1
+      labels:
+        app: postgresql-persistent
+        template: postgresql-persistent-template
       name: "${DATABASE_SERVICE_NAME}"
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
-- apiVersion: v1
-  kind: Route
-  metadata:
-    annotations:
-      openshift.io/host.generated: "true"
-    creationTimestamp: null
-    labels:
-      app: superset
-    name: superset
-  spec:
-    host: ${FQDN}
-    port:
-      targetPort: 8080-tcp
-    to:
-      kind: Service
+    spec:
+      replicas: 1
+      selector:
+        name: "${DATABASE_SERVICE_NAME}"
+      strategy:
+        activeDeadlineSeconds: 21600
+        recreateParams:
+          timeoutSeconds: 600
+        resources: {}
+        type: Recreate
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            name: "${DATABASE_SERVICE_NAME}"
+        spec:
+          containers:
+            - env:
+                - name: POSTGRESQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-user
+                      name: "${DATABASE_SERVICE_NAME}"
+                - name: POSTGRESQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-password
+                      name: "${DATABASE_SERVICE_NAME}"
+                - name: POSTGRESQL_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-name
+                      name: "${DATABASE_SERVICE_NAME}"
+              image: docker.io/centos/postgresql-96-centos7:latest
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                exec:
+                  command:
+                    - /bin/sh
+                    - -i
+                    - -c
+                    - pg_isready -h 127.0.0.1 -p 5432
+                failureThreshold: 3
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
+              name: postgresql
+              ports:
+                - containerPort: 5432
+                  protocol: TCP
+              readinessProbe:
+                exec:
+                  command:
+                    - /bin/sh
+                    - -i
+                    - -c
+                    - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c
+                      'SELECT 1'
+                failureThreshold: 3
+                initialDelaySeconds: 5
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
+              resources:
+                limits:
+                  memory: "${MEMORY_LIMIT}"
+              securityContext:
+                capabilities: {}
+                privileged: false
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /var/lib/pgsql/data
+                  name: "${DATABASE_SERVICE_NAME}-data"
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - name: "${DATABASE_SERVICE_NAME}-data"
+              persistentVolumeClaim:
+                claimName: "${DATABASE_SERVICE_NAME}-data"
+      test: false
+      triggers:
+        - imageChangeParams:
+            automatic: true
+            containerNames:
+              - postgresql
+            from:
+              kind: ImageStreamTag
+              name: postgresql:9.6
+              namespace: openshift
+          type: ImageChange
+        - type: ConfigChange
+    status: {}
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      labels:
+        app: superset
+        build: ${SUPERSET_SERVICE_NAME}
       name: superset
-      weight: 100
-    wildcardPolicy: None
-  status:
-    ingress:
-    - conditions:
-      - lastTransitionTime: 2018-07-10T19:03:51Z
-        status: "True"
-        type: Admitted
+    spec: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        template.openshift.io/expose-uri: http://{.spec.clusterIP}:{.spec.ports[?(.name=="superset")].port}
+      creationTimestamp: null
+      labels:
+        app: superset
+        template: superset-postgres-persistent
+      name: "${SUPERSET_SERVICE_NAME}"
+    spec:
+      ports:
+        - name: 8080-tcp
+          port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        deploymentconfig: "${SUPERSET_SERVICE_NAME}"
+      sessionAffinity: None
+      type: ClusterIP
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        template.openshift.io/expose-uri: postgres://{.spec.clusterIP}:{.spec.ports[?(.name=="postgresql")].port}
+      creationTimestamp: null
+      labels:
+        app: postgresql-persistent
+        template: postgresql-persistent-template
+      name: "${DATABASE_SERVICE_NAME}"
+    spec:
+      ports:
+        - name: postgresql
+          port: 5432
+          protocol: TCP
+          targetPort: 5432
+      selector:
+        name: "${DATABASE_SERVICE_NAME}"
+      sessionAffinity: None
+      type: ClusterIP
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: Route
+    metadata:
+      annotations:
+        openshift.io/host.generated: "true"
+      creationTimestamp: null
+      labels:
+        app: superset
+      name: superset
+    spec:
       host: ${FQDN}
-      routerName: router
+      port:
+        targetPort: 8080-tcp
+      to:
+        kind: Service
+        name: superset
+        weight: 100
       wildcardPolicy: None
+    status:
+      ingress:
+        - conditions:
+            - lastTransitionTime: 2018-07-10T19:03:51Z
+              status: "True"
+              type: Admitted
+          host: ${FQDN}
+          routerName: router
+          wildcardPolicy: None
 parameters:
-- description: The Fully Qualified Hostname (FQDN) of the application
-  displayName: FQDN
-  name: FQDN
-  value: localhost
-  required: true
-- description: Maximum amount of memory the container can use.
-  displayName: Memory Limit
-  name: MEMORY_LIMIT
-  required: true
-  value: 512Mi
-- description: The OpenShift Namespace where the ImageStream resides.
-  displayName: Namespace
-  name: NAMESPACE
-  value: superset
-- description: The passord for the Superset admin user
-  displayName: Superset Admin Password
-  name: SUPERSET_ADMIN_PASSWORD
-  value: 7ujmko0
-  required: true
-- description: FIXME Some SUPERSET SECRET KEY
-  displayName: Superset Secret Key
-  name: SUPERSET_SECRET_KEY
-  value: thisISaSECRET_1234
-  required: true
-- description: The name of the OpenShift Service exposed for the database.
-  displayName: Database Service Name
-  name: DATABASE_SERVICE_NAME
-  required: true
-  value: superset-postgresql
-- description: Username that will be used for accessing the database.
-  displayName: Database Connection Username
-  from: user[A-Z0-9]{3}
-  generate: expression
-  name: DATABASE_USER
-  required: true
-- description: Password for the database connection user.
-  displayName: Database Connection Password
-  from: "[a-zA-Z0-9]{16}"
-  generate: expression
-  name: DATABASE_PASSWORD
-  required: true
-- description: Name of the database accessed.
-  displayName: Database Name
-  name: DATABASE_NAME
-  required: true
-  value: superset
-- description: Password for the database admin user.
-  displayName: Database Admin Password
-  from: "[a-zA-Z0-9]{16}"
-  generate: expression
-  name: DATABASE_ADMIN_PASSWORD
-  required: true
-- description: Volume space available for the database, e.g. 512Mi, 2Gi.
-  displayName: Database Volume Capacity
-  name: VOLUME_CAPACITY_DB
-  required: true
-  value: 10Gi
-- description: Volume space available for Superset, e.g. 512Mi, 2Gi.
-  displayName: Superset Volume Capacity
-  name: VOLUME_CAPACITY_SUPERSET
-  required: true
-  value: 512Mi
-- name: SUPERSET_SERVICE_NAME
-  displayName: Superset Service Name
-  value: superset
-  required: true
-- name: GIT_URI
-  displayName: Git URI
-  description: Git source URI for superset
-  value: https://github.com/riekrh/superset-openshift
-  required: true
-- name: GIT_REF
-  displayName: Git Ref
-  description: Git branch/tag reference
-  value: master
-  required: true
-- name: GITHUB_TRIGGER_SECRET
-  displayName: Github Trigger Secret
-  description: Github Trigger Secret
-  from: "[a-zA-Z0-9]{8}"
-  generate: "expression"
-- name: GENERIC_TRIGGER_SECRET
-  displayName: Generic Trigger Secret
-  description: Generic Trigger Secret
-  from: "[a-zA-Z0-9]{8}"
-  generate: "expression"
+  - description: The Fully Qualified Hostname (FQDN) of the application
+    displayName: FQDN
+    name: FQDN
+    value: localhost
+    required: true
+  - description: Maximum amount of memory the container can use.
+    displayName: Memory Limit
+    name: MEMORY_LIMIT
+    required: true
+    value: 512Mi
+  - description: The OpenShift Namespace where the ImageStream resides.
+    displayName: Namespace
+    name: NAMESPACE
+    value: superset
+  - description: The passord for the Superset admin user
+    displayName: Superset Admin Password
+    name: SUPERSET_ADMIN_PASSWORD
+    value: 7ujmko0
+    required: true
+  - description: FIXME Some SUPERSET SECRET KEY
+    displayName: Superset Secret Key
+    name: SUPERSET_SECRET_KEY
+    value: thisISaSECRET_1234
+    required: true
+  - description: The name of the OpenShift Service exposed for the database.
+    displayName: Database Service Name
+    name: DATABASE_SERVICE_NAME
+    required: true
+    value: superset-postgresql
+  - description: Username that will be used for accessing the database.
+    displayName: Database Connection Username
+    from: user[A-Z0-9]{3}
+    generate: expression
+    name: DATABASE_USER
+    required: true
+  - description: Password for the database connection user.
+    displayName: Database Connection Password
+    from: "[a-zA-Z0-9]{16}"
+    generate: expression
+    name: DATABASE_PASSWORD
+    required: true
+  - description: Name of the database accessed.
+    displayName: Database Name
+    name: DATABASE_NAME
+    required: true
+    value: superset
+  - description: Password for the database admin user.
+    displayName: Database Admin Password
+    from: "[a-zA-Z0-9]{16}"
+    generate: expression
+    name: DATABASE_ADMIN_PASSWORD
+    required: true
+  - description: Volume space available for the database, e.g. 512Mi, 2Gi.
+    displayName: Database Volume Capacity
+    name: VOLUME_CAPACITY_DB
+    required: true
+    value: 10Gi
+  - description: Volume space available for Superset, e.g. 512Mi, 2Gi.
+    displayName: Superset Volume Capacity
+    name: VOLUME_CAPACITY_SUPERSET
+    required: true
+    value: 512Mi
+  - name: SUPERSET_SERVICE_NAME
+    displayName: Superset Service Name
+    value: superset
+    required: true
+  - name: GIT_URI
+    displayName: Git URI
+    description: Git source URI for superset
+    value: https://github.com/riekrh/superset-openshift
+    required: true
+  - name: GIT_REF
+    displayName: Git Ref
+    description: Git branch/tag reference
+    value: master
+    required: true
+  - name: GITHUB_TRIGGER_SECRET
+    displayName: Github Trigger Secret
+    description: Github Trigger Secret
+    from: "[a-zA-Z0-9]{8}"
+    generate: "expression"
+  - name: GENERIC_TRIGGER_SECRET
+    displayName: Generic Trigger Secret
+    description: Generic Trigger Secret
+    from: "[a-zA-Z0-9]{8}"
+    generate: "expression"
 
